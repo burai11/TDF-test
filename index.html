@@ -37,7 +37,7 @@
   /* 盤面ステージ（残り領域を占有し、中央に盤面を収める） */
   .stage{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;}
   .board-wrap{position:relative;background:var(--panel);border:1px solid var(--line);
-    border-radius:12px;overflow:hidden;aspect-ratio:900/560;width:100%;max-height:100%;}
+    border-radius:12px;overflow:hidden;aspect-ratio:900/660;width:100%;max-height:100%;}
   canvas{display:block;width:100%;height:100%;touch-action:manipulation;}
 
   /* 盤面下の操作行 */
@@ -101,10 +101,10 @@
 <body>
 <div class="wrap">
   <h1>ドラフト・タワーディフェンス</h1>
-  <p class="sub">核プロトタイプ / キャラ5・敵3・3ウェーブ / 数値はすべて仮（後で調整可）</p>
+  <p class="sub">テストプロトタイプ / 全12ウェーブ / 数値はすべて仮（後で調整可）</p>
 
   <div class="status">
-    <span class="item">ターン <b id="turnNum">1</b>/3</span>
+    <span class="item">ターン <b id="turnNum">1</b>/<b id="turnTotal">12</b></span>
     <span class="item">HP <span class="hearts" id="hearts"></span></span>
     <span class="item" id="waveInfo">ドラフト</span>
     <span class="phase-tag" id="phaseTag">DRAFT</span>
@@ -114,7 +114,7 @@
 
   <div class="stage">
   <div class="board-wrap">
-    <canvas id="cv" width="900" height="560"></canvas>
+    <canvas id="cv" width="900" height="660"></canvas>
 
     <!-- ドラフト -->
     <div class="overlay" id="draftOverlay">
@@ -172,38 +172,41 @@ const CONFIG = {
   playerHP: 10,
   tileSize: 42,          // 配置マスの見た目サイズ
   waves: [
-    // 各ウェーブの敵構成。t=出現秒, type=敵ID
-    { name:"ウェーブ 1", spawns:[
-      ...seq(7,0.0,1.0,"slime")
-    ]},
-    { name:"ウェーブ 2", spawns:[
-      ...seq(5,0.0,1.1,"slime"), ...seq(5,0.6,1.1,"runner")
-    ]},
-    { name:"ウェーブ 3", spawns:[
-      ...seq(9,0.0,0.8,"slime"), ...seq(2,2.5,3.5,"golem")
-    ]},
+    // 各ウェーブの敵構成。t=出現秒, type=敵ID（すべて仮・調整可）
+    // ※単体攻撃化に伴い、出現間隔を広げて1体ずつ処理しやすく調整
+    { name:"ウェーブ 1",  spawns:[ ...seq(7,0.0,1.8,"slime") ]},
+    { name:"ウェーブ 2",  spawns:[ ...seq(8,0.0,1.7,"slime") ]},
+    { name:"ウェーブ 3",  spawns:[ ...seq(6,0.0,1.6,"slime"), ...seq(5,1.5,1.6,"runner") ]},
+    { name:"ウェーブ 4",  spawns:[ ...seq(10,0.0,1.5,"slime"), ...seq(2,4.0,5.0,"golem") ]},
+    { name:"ウェーブ 5",  spawns:[ ...seq(8,0.0,1.4,"slime"), ...seq(8,1.6,1.4,"runner") ]},
+    { name:"ウェーブ 6",  spawns:[ ...seq(12,0.0,1.0,"slime"), ...seq(3,4.0,4.0,"golem") ]},
+    { name:"ウェーブ 7",  spawns:[ ...seq(14,0.0,0.8,"runner"), ...seq(6,2.5,1.6,"slime") ]},
+    { name:"ウェーブ 8",  spawns:[ ...seq(12,0.0,1.0,"slime"), ...seq(4,3.0,3.0,"golem") ]},
+    { name:"ウェーブ 9",  spawns:[ ...seq(10,0.0,0.9,"runner"), ...seq(10,2.0,1.0,"slime"), ...seq(2,5.0,6.0,"golem") ]},
+    { name:"ウェーブ 10", spawns:[ ...seq(16,0.0,0.85,"slime"), ...seq(5,3.0,3.0,"golem") ]},
+    { name:"ウェーブ 11", spawns:[ ...seq(14,0.0,0.75,"runner"), ...seq(6,2.0,2.5,"golem") ]},
+    { name:"ウェーブ 12", spawns:[ ...seq(20,0.0,0.8,"slime"), ...seq(10,3.0,1.0,"runner"), ...seq(6,5.0,3.0,"golem") ]},
   ],
 
   // キャラクター（核の5種）。stats は [Lv1,Lv2,Lv3]
   characters: {
     swordsman:{ name:"剣士", role:"melee", glyph:"剣", color:"#d98b5f",
-      attack:"circle", interval:0.9,
-      dmg:[10,14,18], range:[70,78,95],
-      desc:"近接・円形範囲。曲がり角で複数の敵をまとめて叩く。Lv3で範囲拡大。" },
+      attack:"single", interval:0.9,
+      dmg:[14,21,28], range:[70,78,95],
+      desc:"近接・単体。バランス型で扱いやすい。雑魚は2発（Lv3は1発）で撃破。Lv3で射程も拡大。" },
     lancer:{ name:"ランサー", role:"melee", glyph:"槍", color:"#e0a06a",
-      attack:"line", interval:1.0, width:26,
+      attack:"single", interval:1.0,
       dmg:[14,18,22], range:[120,120,160],
-      desc:"近接・前方直線。一列に並ぶ長い直線で強い。Lv3で距離延長。" },
+      desc:"近接・単体で射程が長い。前方の敵に早く届く。Lv3で射程延長。" },
     guardian:{ name:"ガーディアン", role:"melee", glyph:"盾", color:"#c98f54",
-      attack:"circle", interval:1.1,
+      attack:"single", interval:1.1,
       dmg:[7,9,11], range:[72,78,84],
       slow:[{f:0.55,t:1.5},{f:0.55,t:1.5},{f:0.4,t:2.2}], // f=速度倍率,t=秒
-      desc:"近接・範囲＋減速。敵の足を止める。Lv3で減速強化。" },
-    archer:{ name:"アーチャー", role:"ranged", glyph:"弓", color:"#7fb3ff",
-      attack:"single", interval:0.45,
-      dmg:[9,12,14], range:[200,200,215],
-      crit:[0,0,0.25], // Lv3で25%の確率でダメージ2倍
-      desc:"遠距離・単体で手数が多い。雑魚処理向き。Lv3でクリティカル。" },
+      desc:"近接・単体＋減速。狙った敵の足を止める。Lv3で減速強化。" },
+    breaker:{ name:"ブレイカー", role:"melee", glyph:"剛", color:"#c0662e",
+      attack:"circle", interval:[2.0,1.9,1.7],   // 攻撃頻度は低い
+      dmg:[34,46,60], range:[74,80,92],           // 一撃が重い・円形範囲
+      desc:"近接・円形範囲。手数は少ないが一撃が重い重量級。密集した敵をまとめて粉砕。Lv3で威力・範囲アップ。" },
     mage:{ name:"メイジ", role:"ranged", glyph:"杖", color:"#9db8ff",
       attack:"splash", interval:1.6,
       dmg:[16,22,28], range:[220,220,220], splash:[55,55,85],
@@ -212,11 +215,10 @@ const CONFIG = {
       attack:"single", interval:[0.9,0.9,0.7],   // Lv3で攻撃速度上昇
       dmg:[12,16,20], range:[200,200,205],
       desc:"遠距離・単体。全能力が平均で突出はないが穴もない保険役。Lv3で攻撃速度上昇。" },
-    assassin:{ name:"アサシン", role:"melee", glyph:"暗", color:"#c0504e",
-      attack:"circle", interval:1.0,
-      dmg:[8,11,14], range:[64,70,76],
-      execute:{ threshold:[0.30,0.30,0.45], bonus:2.5 },  // 瀕死敵へ追加ダメージ。Lv3で処刑ライン強化
-      desc:"近接・範囲。HPが減った敵へ大ダメージ（処刑）。Lv3で処刑ライン強化。" },
+    ninja:{ name:"ニンジャ", role:"melee", glyph:"忍", color:"#8f6fb0",
+      attack:"single", interval:[0.5,0.45,0.38],   // 高速。Lv3で更に手数増
+      dmg:[9,11,13], range:[44,48,54],                // 雑魚を3発で撃破
+      desc:"近接・単体を高速で連打。手数で削るタイプ。指揮官・軍師のバフ範囲内でさらに伸びる。Lv3で手数増加。" },
     sniper:{ name:"スナイパー", role:"ranged", glyph:"狙", color:"#d64550",
       attack:"single", interval:[2.6,2.6,1.9],   // 長チャージ。Lv3でチャージ短縮
       dmg:[70,95,120], range:[340,340,360],
@@ -246,31 +248,24 @@ function seq(n, start, gap, type){
 
 /* =====================================================================
    マップ（一本道）と配置マス
-   PATH: 敵が通る道のりの折れ線。前半U字→中盤L字→後半直線。
+   PATH: 敵が通る道のりの折れ線。左U字→上部の長い直線→右U字（S字）。
    ===================================================================== */
 const PATH = [
-  {x:40,y:120},{x:40,y:400},{x:250,y:400},{x:250,y:120},   // 前半 大U字
-  {x:490,y:120},{x:490,y:380},                              // 中盤 L字
-  {x:560,y:380},{x:560,y:250},{x:630,y:250},{x:630,y:380},  // 狭いU字（幅70）
-  {x:870,y:380}                                             // 後半 直線→ゴール
+  {x:80,y:130},{x:80,y:560},{x:300,y:560},{x:300,y:210},   // 左U字（スタート→下→右→上）
+  {x:740,y:210},                                           // 上段の長い直線
+  {x:740,y:560},{x:855,y:560},{x:855,y:130}                // 右U字（下→右→上→ゴール）
 ];
 
-// 16個の配置マス（前半5・中盤5・後半6）。位置は自由に動かせます。
+// 配置マス10個
 const TILES = [
-  // 前半（大U字周辺・近接向き）
-  {x:92,y:200},{x:92,y:320},{x:150,y:352},{x:298,y:210},{x:298,y:320},
-  // 中盤（L字周辺）
-  {x:350,y:72},{x:350,y:168},{x:442,y:180},{x:442,y:300},
-  // 狭いU字周辺（近接向き）
-  {x:525,y:445},{x:595,y:200},{x:685,y:315},
-  // 後半（直線周辺・遠距離向き）
-  {x:760,y:320},{x:600,y:440},{x:750,y:455},{x:820,y:320},
+  {x:165,y:505},{x:240,y:505},          // 左U字の下（下段通路の上）
+  {x:365,y:268},{x:365,y:345},          // 上段の左（縦・上り列も射程内）
+  {x:505,y:268},{x:585,y:268},          // 上段の中央
+  {x:665,y:268},{x:665,y:345},          // 上段の右（縦・下り列も射程内）
+  {x:797,y:300},{x:797,y:385},          // 右U字の中央（下り通路・上り通路の両方に届く）
 ];
+// ※座標は最終値（内部 900×660）。全体を上下に動かしたい場合はまとめてyを増減できます。
 
-/* =====================================================================
-   画像素材の差し込み口（今は全て null → コード描画。後で Image を入れる）
-   例）ASSETS.portrait.swordsman = loadImg("img/swordsman_portrait.png");
-   ===================================================================== */
 const ASSETS = { portrait:{}, sprite:{}, enemy:{} };
 function loadImg(src){ const im=new Image(); im.src=src; im.__ok=false; im.onload=()=>im.__ok=true; return im; }
 function imgReady(im){ return im && im.complete && im.naturalWidth>0; }
@@ -285,7 +280,7 @@ function registerChar(id, idleSrc, atkSrc){
 }
 // 画像は index.html と同じ場所の img/ フォルダから読み込む（img/{id}_idle.png, img/{id}_atk.png）
 function reg(id){ registerChar(id, `img/${id}_idle.png`, `img/${id}_atk.png`); }
-["swordsman","mage","guardian","ranger","assassin","sniper","commander","strategist"].forEach(reg);
+["swordsman","mage","guardian","ranger","ninja","sniper","commander","strategist"].forEach(reg);
 
 /* =====================================================================
    ここから下はゲーム本体（通常は触らなくてOK）
@@ -344,6 +339,7 @@ function newGame(){
 // ---- ステータス表示 ----
 function updateStatus(){
   document.getElementById("turnNum").textContent = state.turn;
+  document.getElementById("turnTotal").textContent = CONFIG.waves.length;
   const hearts = "♥".repeat(state.hp) + "♡".repeat(Math.max(0,CONFIG.playerHP-state.hp));
   const h=document.getElementById("hearts"); h.textContent=hearts; h.style.color="var(--hp)";
   const tag=document.getElementById("phaseTag");
@@ -551,6 +547,7 @@ function unitAttack(unit, dt){
     let d=dmg; if(c.crit && Math.random()<c.crit[lv]) d*=2;
     addBeam(unit.x,unit.y,tgt.x,tgt.y,c.color);
     dealDamage(unit,tgt,d);
+    if(c.slow){ const s=c.slow[lv]; tgt.slowF=Math.min(tgt.slowF,s.f); tgt.slowUntil=Math.max(tgt.slowUntil,s.t); }
     unit.cd=interval;
   }
   else if(c.attack==="splash"){
@@ -639,7 +636,7 @@ function endGame(win){
   state.phase="end"; updateStatus();
   document.getElementById("endTitle").textContent = win ? "クリア！" : "ゲームオーバー";
   document.getElementById("endLead").textContent = win
-    ? "核プロトタイプの3ウェーブを突破しました。ここから敵・キャラ・ボスを追加していけます。"
+    ? `全${CONFIG.waves.length}ウェーブを突破しました！ここから敵・キャラ・ボスを追加していけます。`
     : `${state.turn}ターン目でHPが尽きました。`;
   showOverlay("endOverlay");
 }
@@ -695,7 +692,7 @@ function drawTiles(){
 }
 function drawUnits(){
   const roleVar={melee:"#d98b5f",ranged:"#7fb3ff",support:"#b98cff"};
-  state.units.forEach(u=>{
+  state.units.slice().sort((a,b)=>a.y-b.y).forEach(u=>{
     const c=CONFIG.characters[u.id];
     // 配置フェーズは射程（支援はオーラ範囲）を薄く表示
     if(state.phase==="placement"){
@@ -711,13 +708,13 @@ function drawUnits(){
     const atk=ASSETS.atk && ASSETS.atk[u.id];
     const img=(u.atkFlash>0 && imgReady(atk)) ? atk : (imgReady(idle)? idle : null);
     if(img){
-      const h=74, w=h*img.naturalWidth/img.naturalHeight, bottom=u.y+16;
+      const h=112, w=h*img.naturalWidth/img.naturalHeight, bottom=u.y+16;
       ctx.fillStyle="rgba(0,0,0,.28)"; ctx.beginPath();
-      ctx.ellipse(u.x,bottom-2,16,5,0,0,7); ctx.fill();          // 接地の影
+      ctx.ellipse(u.x,bottom-2,20,6,0,0,7); ctx.fill();          // 接地の影
       ctx.drawImage(img, u.x-w/2, bottom-h, w, h);
       if(state.placedThisTurn===u){
         ctx.strokeStyle="#e6b34a"; ctx.lineWidth=2; ctx.setLineDash([4,4]);
-        ctx.beginPath(); ctx.ellipse(u.x,bottom-2,18,7,0,0,7); ctx.stroke(); ctx.setLineDash([]);
+        ctx.beginPath(); ctx.ellipse(u.x,bottom-2,22,8,0,0,7); ctx.stroke(); ctx.setLineDash([]);
       }
       ctx.fillStyle="#e6b34a"; ctx.font="bold 11px system-ui"; ctx.textAlign="center";
       ctx.fillText("Lv"+u.level,u.x,bottom-h-3); ctx.textAlign="left";
