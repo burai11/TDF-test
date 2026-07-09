@@ -174,19 +174,19 @@ const CONFIG = {
   tileSize: 42,          // 配置マスの見た目サイズ
   waves: [
     // 各ウェーブの敵構成。t=出現秒, type=敵ID（すべて仮・調整可）
-    // ※単体攻撃化に伴い、出現間隔を広げて1体ずつ処理しやすく調整
-    { name:"ウェーブ 1",  spawns:[ ...seq(7,0.0,1.8,"slime") ]},
-    { name:"ウェーブ 2",  spawns:[ ...seq(8,0.0,1.7,"slime") ]},
-    { name:"ウェーブ 3",  spawns:[ ...seq(6,0.0,1.6,"slime"), ...seq(5,1.5,1.6,"runner") ]},
-    { name:"ウェーブ 4",  spawns:[ ...seq(10,0.0,1.5,"slime"), ...seq(2,4.0,5.0,"golem") ]},
-    { name:"ウェーブ 5",  spawns:[ ...seq(8,0.0,1.4,"slime"), ...seq(8,1.6,1.4,"runner") ]},
-    { name:"ウェーブ 6",  spawns:[ ...seq(12,0.0,1.0,"slime"), ...seq(3,4.0,4.0,"golem") ]},
-    { name:"ウェーブ 7",  spawns:[ ...seq(14,0.0,0.8,"runner"), ...seq(6,2.5,1.6,"slime") ]},
-    { name:"ウェーブ 8",  spawns:[ ...seq(12,0.0,1.0,"slime"), ...seq(4,3.0,3.0,"golem") ]},
-    { name:"ウェーブ 9",  spawns:[ ...seq(10,0.0,0.9,"runner"), ...seq(10,2.0,1.0,"slime"), ...seq(2,5.0,6.0,"golem") ]},
-    { name:"ウェーブ 10", spawns:[ ...seq(16,0.0,0.85,"slime"), ...seq(5,3.0,3.0,"golem") ]},
-    { name:"ウェーブ 11", spawns:[ ...seq(14,0.0,0.75,"runner"), ...seq(6,2.0,2.5,"golem") ]},
-    { name:"ウェーブ 12", spawns:[ ...seq(20,0.0,0.8,"slime"), ...seq(10,3.0,1.0,"runner"), ...seq(6,5.0,3.0,"golem") ]},
+    // W1/W2はLv1単体で処理しきれる余裕、W3以降は数を増やして難度上昇
+    { name:"ウェーブ 1",  spawns:[ ...seq(7,0.0,2.8,"slime") ]},
+    { name:"ウェーブ 2",  spawns:[ ...seq(8,0.0,2.5,"slime") ]},
+    { name:"ウェーブ 3",  spawns:[ ...seq(9,0.0,1.6,"slime"), ...seq(7,1.5,1.6,"runner") ]},
+    { name:"ウェーブ 4",  spawns:[ ...seq(14,0.0,1.5,"slime"), ...seq(3,4.0,5.0,"golem") ]},
+    { name:"ウェーブ 5",  spawns:[ ...seq(12,0.0,1.4,"slime"), ...seq(11,1.6,1.4,"runner") ]},
+    { name:"ウェーブ 6",  spawns:[ ...seq(16,0.0,1.0,"slime"), ...seq(4,4.0,4.0,"golem") ]},
+    { name:"ウェーブ 7",  spawns:[ ...seq(18,0.0,0.8,"runner"), ...seq(9,2.5,1.6,"slime") ]},
+    { name:"ウェーブ 8",  spawns:[ ...seq(16,0.0,1.0,"slime"), ...seq(6,3.0,3.0,"golem") ]},
+    { name:"ウェーブ 9",  spawns:[ ...seq(14,0.0,0.9,"runner"), ...seq(14,2.0,1.0,"slime"), ...seq(3,5.0,6.0,"golem") ]},
+    { name:"ウェーブ 10", spawns:[ ...seq(22,0.0,0.85,"slime"), ...seq(7,3.0,3.0,"golem") ]},
+    { name:"ウェーブ 11", spawns:[ ...seq(20,0.0,0.75,"runner"), ...seq(8,2.0,2.5,"golem") ]},
+    { name:"ウェーブ 12", spawns:[ ...seq(28,0.0,0.8,"slime"), ...seq(14,3.0,1.0,"runner"), ...seq(9,5.0,3.0,"golem") ]},
   ],
 
   // キャラクター（核の5種）。stats は [Lv1,Lv2,Lv3]
@@ -205,9 +205,9 @@ const CONFIG = {
       slow:[{f:0.55,t:1.5},{f:0.55,t:1.5},{f:0.4,t:2.2}], // f=速度倍率,t=秒
       desc:"近接・単体＋減速。狙った敵の足を止める。Lv3で減速強化。" },
     breaker:{ name:"ブレイカー", role:"melee", glyph:"剛", color:"#c0662e",
-      attack:"circle", interval:[2.7,2.6,2.3],   // 攻撃頻度は低い
-      dmg:[34,46,60], range:[74,80,92],           // 一撃が重い・円形範囲
-      desc:"近接・円形範囲。手数は少ないが一撃が重い重量級。密集した敵をまとめて粉砕。Lv3で威力・範囲アップ。" },
+      attack:"circle", interval:[3.2,3.0,2.7],   // 攻撃頻度をさらに低く（隙が大きい）
+      dmg:[24,35,48], range:[74,80,92],           // 重い一撃・円形範囲（単体撃破は連携前提）
+      desc:"近接・円形範囲。攻撃間隔が長く隙が大きい重量級。密集を巻き込む一撃だが単体では倒しきれず、他キャラとの連携前提。Lv3で威力・範囲アップ。" },
     mage:{ name:"メイジ", role:"ranged", glyph:"杖", color:"#9db8ff",
       attack:"splash", interval:2.2,
       dmg:[16,22,28], range:[220,220,220], splash:[55,55,85],
@@ -217,13 +217,13 @@ const CONFIG = {
       dmg:[12,16,20], range:[200,200,205],
       desc:"遠距離・単体。全能力が平均で突出はないが穴もない保険役。Lv3で攻撃速度上昇。" },
     ninja:{ name:"ニンジャ", role:"melee", glyph:"忍", color:"#8f6fb0",
-      attack:"single", interval:[0.7,0.63,0.54],   // 高速。Lv3で更に手数増
+      attack:"single", interval:[0.35,0.3,0.25],   // 超高速。Lv3で更に手数増
       dmg:[7,10,13], range:[44,48,54],                // 短射程（マスを通路寄りにしたため届く）
-      desc:"近接・単体を高速で連打。手数で削るタイプ。指揮官・軍師のバフ範囲内でさらに伸びる。Lv3で手数増加。" },
+      desc:"近接・単体を超高速で連打。ミリ残りの雑魚を素早く処理する掃討役。指揮官・軍師のバフ範囲内でさらに伸びる。Lv3で手数増加。" },
     sniper:{ name:"スナイパー", role:"ranged", glyph:"狙", color:"#d64550",
-      attack:"single", interval:[3.5,3.5,2.6],   // 長チャージ。Lv3でチャージ短縮
+      attack:"single", interval:[7.0,7.0,7.0],   // 超長チャージ（全Lv共通7秒）
       dmg:[70,95,120], range:[340,340,360],
-      desc:"遠距離・単体。超高威力・超長射程だが長チャージ。高HP敵・ボス向け。Lv3でチャージ短縮。" },
+      desc:"遠距離・単体。超高威力・超長射程だが超長チャージ（7秒）。高HP敵・ボス向け。Lv3で威力・射程アップ。" },
     commander:{ name:"指揮官", role:"support", glyph:"令", color:"#e0b64a",
       attack:"none",
       aura:{ stat:"atk", mult:[1.15,1.20,1.25], radius:115 },  // 周囲の味方の攻撃力上昇
