@@ -110,6 +110,7 @@
     <span class="phase-tag" id="phaseTag">DRAFT</span>
     <button class="spd" id="spd15">1.5×</button>
     <button class="spd" id="spd2">2×</button>
+    <button class="spd" id="spd3">3×</button>
   </div>
 
   <div class="stage">
@@ -191,36 +192,36 @@ const CONFIG = {
   // キャラクター（核の5種）。stats は [Lv1,Lv2,Lv3]
   characters: {
     swordsman:{ name:"剣士", role:"melee", glyph:"剣", color:"#d98b5f",
-      attack:"single", interval:0.9,
+      attack:"single", interval:1.3,
       dmg:[14,21,28], range:[70,78,95],
       desc:"近接・単体。バランス型で扱いやすい。雑魚は2発（Lv3は1発）で撃破。Lv3で射程も拡大。" },
     lancer:{ name:"ランサー", role:"melee", glyph:"槍", color:"#e0a06a",
-      attack:"single", interval:1.0,
+      attack:"single", interval:1.4,
       dmg:[14,18,22], range:[120,120,160],
       desc:"近接・単体で射程が長い。前方の敵に早く届く。Lv3で射程延長。" },
     guardian:{ name:"ガーディアン", role:"melee", glyph:"盾", color:"#c98f54",
-      attack:"single", interval:1.1,
+      attack:"single", interval:1.5,
       dmg:[7,9,11], range:[72,78,84],
       slow:[{f:0.55,t:1.5},{f:0.55,t:1.5},{f:0.4,t:2.2}], // f=速度倍率,t=秒
       desc:"近接・単体＋減速。狙った敵の足を止める。Lv3で減速強化。" },
     breaker:{ name:"ブレイカー", role:"melee", glyph:"剛", color:"#c0662e",
-      attack:"circle", interval:[2.0,1.9,1.7],   // 攻撃頻度は低い
+      attack:"circle", interval:[2.7,2.6,2.3],   // 攻撃頻度は低い
       dmg:[34,46,60], range:[74,80,92],           // 一撃が重い・円形範囲
       desc:"近接・円形範囲。手数は少ないが一撃が重い重量級。密集した敵をまとめて粉砕。Lv3で威力・範囲アップ。" },
     mage:{ name:"メイジ", role:"ranged", glyph:"杖", color:"#9db8ff",
-      attack:"splash", interval:1.6,
+      attack:"splash", interval:2.2,
       dmg:[16,22,28], range:[220,220,220], splash:[55,55,85],
       desc:"遠距離・範囲魔法。手数は遅いが密集に強い。Lv3で範囲拡大。" },
     ranger:{ name:"レンジャー", role:"ranged", glyph:"斥", color:"#8fbf6f",
-      attack:"single", interval:[0.9,0.9,0.7],   // Lv3で攻撃速度上昇
+      attack:"single", interval:[1.25,1.25,1.0],   // Lv3で攻撃速度上昇
       dmg:[12,16,20], range:[200,200,205],
       desc:"遠距離・単体。全能力が平均で突出はないが穴もない保険役。Lv3で攻撃速度上昇。" },
     ninja:{ name:"ニンジャ", role:"melee", glyph:"忍", color:"#8f6fb0",
-      attack:"single", interval:[0.5,0.45,0.38],   // 高速。Lv3で更に手数増
-      dmg:[9,11,13], range:[44,48,54],                // 雑魚を3発で撃破
+      attack:"single", interval:[0.7,0.63,0.54],   // 高速。Lv3で更に手数増
+      dmg:[7,10,13], range:[44,48,54],                // 短射程（マスを通路寄りにしたため届く）
       desc:"近接・単体を高速で連打。手数で削るタイプ。指揮官・軍師のバフ範囲内でさらに伸びる。Lv3で手数増加。" },
     sniper:{ name:"スナイパー", role:"ranged", glyph:"狙", color:"#d64550",
-      attack:"single", interval:[2.6,2.6,1.9],   // 長チャージ。Lv3でチャージ短縮
+      attack:"single", interval:[3.5,3.5,2.6],   // 長チャージ。Lv3でチャージ短縮
       dmg:[70,95,120], range:[340,340,360],
       desc:"遠距離・単体。超高威力・超長射程だが長チャージ。高HP敵・ボス向け。Lv3でチャージ短縮。" },
     commander:{ name:"指揮官", role:"support", glyph:"令", color:"#e0b64a",
@@ -235,9 +236,10 @@ const CONFIG = {
 
   // 敵（核の3種）
   enemies: {
-    slime:{ name:"スライム", hp:26,  speed:46, color:"#7bd88f", r:13 },
-    runner:{ name:"ランナー", hp:18, speed:96, color:"#f2c94c", r:11 },
-    golem:{ name:"ゴーレム", hp:150, speed:28, color:"#9aa3b8", r:18 },
+    // sh=盤面スプライト高さ, anim=歩行モーション（amp:上下幅, freq:歩調, tilt:走行の前傾ゆれ）
+    slime:{ name:"ゴブリン", hp:28,  speed:46, color:"#7bd88f", r:13, sh:50, anim:{amp:3.5, freq:0.075, tilt:0} },
+    runner:{ name:"コボルト", hp:18, speed:96, color:"#f2c94c", r:11, sh:46, anim:{amp:5, freq:0.09, tilt:0.16} },
+    golem:{ name:"ゴーレム", hp:150, speed:28, color:"#9aa3b8", r:18, def:5, sh:80, anim:{amp:1.5, freq:0.05, tilt:0} },
   },
 };
 
@@ -252,19 +254,19 @@ function seq(n, start, gap, type){
    ===================================================================== */
 const PATH = [
   {x:80,y:130},{x:80,y:560},{x:300,y:560},{x:300,y:210},   // 左U字（スタート→下→右→上）
-  {x:740,y:210},                                           // 上段の長い直線
-  {x:740,y:560},{x:855,y:560},{x:855,y:130}                // 右U字（下→右→上→ゴール）
+  {x:748,y:210},                                           // 上段の長い直線
+  {x:748,y:560},{x:842,y:560},{x:842,y:130}                // 右U字（狭め・下→右→上→ゴール）
 ];
 
-// 配置マス10個
+// 配置マス10個（各マス〜通路 約45px。短射程でも届く配置）
 const TILES = [
-  {x:165,y:505},{x:240,y:505},          // 左U字の下（下段通路の上）
-  {x:365,y:268},{x:365,y:345},          // 上段の左（縦・上り列も射程内）
-  {x:505,y:268},{x:585,y:268},          // 上段の中央
-  {x:665,y:268},{x:665,y:345},          // 上段の右（縦・下り列も射程内）
-  {x:797,y:300},{x:797,y:385},          // 右U字の中央（下り通路・上り通路の両方に届く）
+  {x:160,y:515},{x:235,y:515},          // 左U字の下（下段通路の上）
+  {x:365,y:255},{x:345,y:350},          // 上段左（直線／上り列）
+  {x:500,y:255},{x:585,y:255},          // 上段中央（直線）
+  {x:665,y:255},{x:703,y:350},          // 上段右（直線／下り列）
+  {x:795,y:300},{x:795,y:385},          // 右U字の中央（下り通路・上り通路の両方に届く 約47px）
 ];
-// ※座標は最終値（内部 900×660）。全体を上下に動かしたい場合はまとめてyを増減できます。
+// ※座標は最終値（内部 900×660）。
 
 const ASSETS = { portrait:{}, sprite:{}, enemy:{} };
 function loadImg(src){ const im=new Image(); im.src=src; im.__ok=false; im.onload=()=>im.__ok=true; return im; }
@@ -280,7 +282,11 @@ function registerChar(id, idleSrc, atkSrc){
 }
 // 画像は index.html と同じ場所の img/ フォルダから読み込む（img/{id}_idle.png, img/{id}_atk.png）
 function reg(id){ registerChar(id, `img/${id}_idle.png`, `img/${id}_atk.png`); }
-["swordsman","mage","guardian","ranger","ninja","sniper","commander","strategist"].forEach(reg);
+["swordsman","lancer","guardian","ninja","breaker","mage","ranger","sniper","commander","strategist"].forEach(reg);
+// 敵スプライト（type → 画像）
+ASSETS.enemy.slime  = loadImg("img/goblin_enemy.png");   // ゴブリン（スライム枠）
+ASSETS.enemy.runner = loadImg("img/kobold_enemy.png");   // コボルト（ランナー枠）
+ASSETS.enemy.golem  = loadImg("img/golem_enemy.png");
 
 /* =====================================================================
    ここから下はゲーム本体（通常は触らなくてOK）
@@ -329,7 +335,7 @@ function newGame(){
     spawnQueue:[],
     waveTimer:0,
     effects:[],             // 攻撃線などの一時演出
-    speed:1,                // ゲーム速度（1 / 1.5 / 2）
+    speed:1.5,              // ゲーム速度（デフォルト1.5 / 選択：1.5 / 2 / 3）
   };
   updateSpeedButtons();
   updateStatus();
@@ -478,7 +484,7 @@ function startWave(){
 function spawnEnemy(type){
   const e=CONFIG.enemies[type];
   state.enemies.push({ type, name:e.name, hp:e.hp, maxhp:e.hp, speed:e.speed,
-    r:e.r, color:e.color, dist:0, slowUntil:0, slowF:1, hitFlash:0, alive:true });
+    r:e.r, color:e.color, def:e.def||0, dist:0, slowUntil:0, slowF:1, hitFlash:0, alive:true });
 }
 
 // 攻撃線などの一時演出
@@ -486,8 +492,9 @@ function addBeam(x1,y1,x2,y2,color){ state.effects.push({type:"beam",x1,y1,x2,y2
 function addRing(x,y,r,color){ state.effects.push({type:"ring",x,y,r,color,life:0.18}); }
 
 function dealDamage(unit, enemy, amount){
-  enemy.hp-=amount; enemy.hitFlash=0.12;
-  unit.dmg+=amount;
+  const dealt = Math.max(1, amount - (enemy.def||0));   // 防御力ぶん軽減（最低1）
+  enemy.hp-=dealt; enemy.hitFlash=0.12;
+  unit.dmg+=dealt;
   if(enemy.hp<=0 && enemy.alive){ enemy.alive=false; unit.kills++; }
 }
 
@@ -735,16 +742,44 @@ function drawUnits(){
 function drawEnemies(){
   state.enemies.forEach(e=>{
     if(!e.alive) return;
-    ctx.fillStyle = e.hitFlash>0 ? "#ffffff" : e.color;
-    ctx.beginPath(); ctx.arc(e.x,e.y,e.r,0,7); ctx.fill();
-    ctx.strokeStyle="#0e1220"; ctx.lineWidth=2; ctx.stroke();
-    if(e.slowF<1){ ctx.strokeStyle="#48c9e5"; ctx.lineWidth=2;
-      ctx.beginPath(); ctx.arc(e.x,e.y,e.r+3,0,7); ctx.stroke(); }
-    // HPバー
-    const w=e.r*2, ratio=Math.max(0,e.hp/e.maxhp);
-    ctx.fillStyle="#3a0e12"; ctx.fillRect(e.x-w/2,e.y-e.r-8,w,4);
-    ctx.fillStyle= ratio>0.5?"#57d38c":ratio>0.25?"#e6b34a":"#e5484d";
-    ctx.fillRect(e.x-w/2,e.y-e.r-8,w*ratio,4);
+    const c=CONFIG.enemies[e.type];
+    const img=ASSETS.enemy[e.type];
+    const an=c.anim||{amp:0,freq:0,tilt:0};
+    const phase=e.dist*an.freq;                 // 進んだ距離に応じた歩調
+    const bob=Math.sin(phase)*an.amp;           // 上下バウンド（歩行）
+    const feetY=e.y+bob;                        // 足元
+    if(imgReady(img)){
+      const h=c.sh, w=h*img.naturalWidth/img.naturalHeight;
+      // 接地の影（バウンドしても影は地面に固定）
+      ctx.fillStyle="rgba(0,0,0,.25)"; ctx.beginPath();
+      ctx.ellipse(e.x,e.y+2,w*0.32,4,0,0,7); ctx.fill();
+      // 減速中は足元に青リング
+      if(e.slowF<1){ ctx.strokeStyle="#48c9e5"; ctx.lineWidth=2;
+        ctx.beginPath(); ctx.ellipse(e.x,e.y+2,w*0.34,5,0,0,7); ctx.stroke(); }
+      const pop = e.hitFlash>0 ? 1.08 : 1;       // 被弾で軽くポップ
+      const dw=w*pop, dh=h*pop;
+      ctx.save();
+      ctx.translate(e.x, feetY);
+      if(an.tilt){ ctx.rotate(Math.sin(phase)*an.tilt); }  // 走行の前傾ゆれ
+      ctx.drawImage(img, -dw/2, -dh, dw, dh);
+      ctx.restore();
+      // HPバー（スプライト上）
+      const bw=Math.max(24,w*0.7), ratio=Math.max(0,e.hp/e.maxhp), by=feetY-h-6;
+      ctx.fillStyle="#3a0e12"; ctx.fillRect(e.x-bw/2,by,bw,4);
+      ctx.fillStyle= ratio>0.5?"#57d38c":ratio>0.25?"#e6b34a":"#e5484d";
+      ctx.fillRect(e.x-bw/2,by,bw*ratio,4);
+    }else{
+      // フォールバック（画像未読込時）：従来の円
+      ctx.fillStyle = e.hitFlash>0 ? "#ffffff" : e.color;
+      ctx.beginPath(); ctx.arc(e.x,e.y,e.r,0,7); ctx.fill();
+      ctx.strokeStyle="#0e1220"; ctx.lineWidth=2; ctx.stroke();
+      if(e.slowF<1){ ctx.strokeStyle="#48c9e5"; ctx.lineWidth=2;
+        ctx.beginPath(); ctx.arc(e.x,e.y,e.r+3,0,7); ctx.stroke(); }
+      const w=e.r*2, ratio=Math.max(0,e.hp/e.maxhp);
+      ctx.fillStyle="#3a0e12"; ctx.fillRect(e.x-w/2,e.y-e.r-8,w,4);
+      ctx.fillStyle= ratio>0.5?"#57d38c":ratio>0.25?"#e6b34a":"#e5484d";
+      ctx.fillRect(e.x-w/2,e.y-e.r-8,w*ratio,4);
+    }
   });
 }
 function drawEffects(){
@@ -770,7 +805,11 @@ function roundRect(x,y,w,h,r){
 let last=performance.now();
 function loop(now){
   let dt=(now-last)/1000; last=now; if(dt>0.05) dt=0.05;
-  if(state.phase==="battle") updateBattle(dt*state.speed);   // 速度倍率を反映
+  if(state.phase==="battle"){
+    // 速度倍率ぶんをまとめて進める（1ステップは最大0.05秒に分割して挙動を安定化）
+    let t=dt*state.speed;
+    while(t>0 && state.phase==="battle"){ const step=Math.min(0.05,t); updateBattle(step); t-=step; }
+  }
   draw();
   requestAnimationFrame(loop);
 }
@@ -793,13 +832,15 @@ document.getElementById("restartBtn").onclick=()=>{ hideOverlay("endOverlay"); n
 document.getElementById("rerollBtn").onclick=()=>{ if(state.phase==="draft") rollDraft(); };
 
 // ゲーム速度（同じ速度を再タップで等倍に戻る）
-function setSpeed(mult){ state.speed = (state.speed===mult) ? 1 : mult; updateSpeedButtons(); }
+function setSpeed(mult){ state.speed = mult; updateSpeedButtons(); }   // タップでその速度に切替（1.5がデフォルト）
 function updateSpeedButtons(){
   document.getElementById("spd15").classList.toggle("active", state.speed===1.5);
   document.getElementById("spd2").classList.toggle("active", state.speed===2);
+  document.getElementById("spd3").classList.toggle("active", state.speed===3);
 }
 document.getElementById("spd15").onclick=()=>setSpeed(1.5);
 document.getElementById("spd2").onclick=()=>setSpeed(2);
+document.getElementById("spd3").onclick=()=>setSpeed(3);
 
 // 起動
 newGame();
