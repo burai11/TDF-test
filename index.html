@@ -33,6 +33,11 @@
   .spd{background:transparent;border:1px solid var(--line);color:var(--muted);
     font-size:12px;font-weight:700;padding:3px 9px;border-radius:6px;cursor:pointer;margin-left:6px;}
   .spd.active{background:var(--gold);color:#20180a;border-color:var(--gold);}
+  .hrow{margin:7px 0;font-size:12px;line-height:1.45;}
+  .hbadge{display:inline-block;width:18px;height:18px;border-radius:5px;color:#161616;
+    font-weight:800;text-align:center;line-height:18px;font-size:11px;margin-right:6px;vertical-align:middle;}
+  .htag{color:var(--muted);font-size:11px;}
+  .hdesc{color:var(--muted);}
 
   /* 盤面ステージ（残り領域を占有し、中央に盤面を収める） */
   .stage{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;}
@@ -111,6 +116,7 @@
     <button class="spd" id="spd15">1.5×</button>
     <button class="spd" id="spd2">2×</button>
     <button class="spd" id="spd3">3×</button>
+    <button class="spd" id="helpBtn">遊び方</button>
   </div>
 
   <div class="stage">
@@ -153,6 +159,33 @@
         </div>
       </div>
     </div>
+
+    <!-- 遊び方 -->
+    <div class="overlay" id="helpOverlay">
+      <div class="modal">
+        <h2>遊び方</h2>
+        <p class="lead">敵をゴールに通さず、全12ウェーブを守り切ろう！プレイヤーHPが0になる前に守り切ればクリア。</p>
+        <p><b>■ 毎ターンの流れ</b></p>
+        <p>① <b>ドラフト</b>：3人から1人を選ぶ（必ず1人）。「🎲選び直す」で引き直せる。同じキャラを選ぶとレベルアップ（最大Lv3）。</p>
+        <p>② <b>配置</b>：光るマスをタップして置く。「完了」前なら別マスへ動かせる。</p>
+        <p>③ <b>完了</b>：「完了」ボタンでウェーブ開始。戦闘は<b>全自動</b>（見守るだけ）。</p>
+        <p>④ <b>リザルト</b>：各キャラの働きを確認して次のターンへ。</p>
+        <p><b>■ 操作</b></p>
+        <p>・速度：上の <b>1.5× / 2× / 3×</b> で戦闘スピードを変更（初期1.5×）。<br>・リロール：ドラフトの「選び直す」。</p>
+        <p><b>■ キャラクター</b>（近接＝通路のそば／遠距離＝離れても届く／支援＝攻撃せず味方強化）</p>
+        <div id="helpChars"></div>
+        <p><b>■ 敵</b></p>
+        <div id="helpEnemies"></div>
+        <p><b>■ ワンポイント</b></p>
+        <p>・<b>支援</b>（指揮官・軍師）は攻撃しない。オーラ範囲内の味方を強化するので、味方の近くに置こう。<br>
+        ・<b>ゴーレム・オーク</b>は硬い。重い一撃（<b>ブレイカー・スナイパー</b>）が有効。<br>
+        ・<b>群れ</b>には範囲・連鎖（<b>ブレイカー・メイジ・ランサー</b>）が有効。<br>
+        ・レベルアップ（同名を選ぶ）と置き場所で守りを固めよう。</p>
+        <div style="text-align:right;margin-top:14px;">
+          <button class="primary" id="helpCloseBtn">とじる</button>
+        </div>
+      </div>
+    </div>
   </div>
   </div>
 
@@ -179,14 +212,14 @@ const CONFIG = {
     { name:"ウェーブ 2",  spawns:[ ...seq(8,0.0,2.5,"slime") ]},
     { name:"ウェーブ 3",  spawns:[ ...seq(9,0.0,1.6,"slime"), ...seq(7,1.5,1.6,"runner") ]},
     { name:"ウェーブ 4",  spawns:[ ...seq(14,0.0,1.5,"slime"), ...seq(3,4.0,5.0,"golem") ]},
-    { name:"ウェーブ 5",  spawns:[ ...seq(12,0.0,1.4,"slime"), ...seq(11,1.6,1.4,"runner") ]},
-    { name:"ウェーブ 6",  spawns:[ ...seq(16,0.0,1.0,"slime"), ...seq(4,4.0,4.0,"golem") ]},
-    { name:"ウェーブ 7",  spawns:[ ...seq(18,0.0,0.8,"runner"), ...seq(9,2.5,1.6,"slime") ]},
-    { name:"ウェーブ 8",  spawns:[ ...seq(16,0.0,1.0,"slime"), ...seq(6,3.0,3.0,"golem") ]},
-    { name:"ウェーブ 9",  spawns:[ ...seq(14,0.0,0.9,"runner"), ...seq(14,2.0,1.0,"slime"), ...seq(3,5.0,6.0,"golem") ]},
-    { name:"ウェーブ 10", spawns:[ ...seq(22,0.0,0.85,"slime"), ...seq(7,3.0,3.0,"golem") ]},
-    { name:"ウェーブ 11", spawns:[ ...seq(20,0.0,0.75,"runner"), ...seq(8,2.0,2.5,"golem") ]},
-    { name:"ウェーブ 12", spawns:[ ...seq(28,0.0,0.8,"slime"), ...seq(14,3.0,1.0,"runner"), ...seq(9,5.0,3.0,"golem") ]},
+    { name:"ウェーブ 5",  spawns:[ ...seq(9,0.0,1.4,"slime"), ...seq(8,1.6,1.4,"runner"), ...seq(3,3.0,3.0,"orc"), ...seq(3,4.0,3.0,"harpy") ]},
+    { name:"ウェーブ 6",  spawns:[ ...seq(13,0.0,1.0,"slime"), ...seq(4,4.0,4.0,"golem"), ...seq(3,2.0,3.5,"orc") ]},
+    { name:"ウェーブ 7",  spawns:[ ...seq(14,0.0,0.8,"runner"), ...seq(9,2.5,1.6,"slime"), ...seq(4,3.0,3.0,"harpy") ]},
+    { name:"ウェーブ 8",  spawns:[ ...seq(12,0.0,1.0,"slime"), ...seq(6,3.0,3.0,"golem"), ...seq(4,2.0,3.0,"orc") ]},
+    { name:"ウェーブ 9",  spawns:[ ...seq(10,0.0,0.9,"runner"), ...seq(10,2.0,1.0,"slime"), ...seq(3,5.0,6.0,"golem"), ...seq(4,3.0,2.5,"harpy"), ...seq(4,4.0,2.5,"orc") ]},
+    { name:"ウェーブ 10", spawns:[ ...seq(16,0.0,0.85,"slime"), ...seq(7,3.0,3.0,"golem"), ...seq(6,2.0,2.2,"orc") ]},
+    { name:"ウェーブ 11", spawns:[ ...seq(14,0.0,0.75,"runner"), ...seq(8,2.0,2.5,"golem"), ...seq(6,2.5,2.0,"harpy") ]},
+    { name:"ウェーブ 12", spawns:[ ...seq(20,0.0,0.8,"slime"), ...seq(10,3.0,1.0,"runner"), ...seq(9,5.0,3.0,"golem"), ...seq(8,2.0,2.0,"orc"), ...seq(4,4.0,2.5,"harpy") ]},
   ],
 
   // キャラクター（核の5種）。stats は [Lv1,Lv2,Lv3]
@@ -196,9 +229,9 @@ const CONFIG = {
       dmg:[14,21,28], range:[70,78,95],
       desc:"近接・単体。バランス型で扱いやすい。雑魚は2発（Lv3は1発）で撃破。Lv3で射程も拡大。" },
     lancer:{ name:"ランサー", role:"melee", glyph:"槍", color:"#e0a06a",
-      attack:"single", interval:1.4,
+      attack:"chain", interval:1.4, chainRadius:48, chainMax:3,
       dmg:[14,18,22], range:[120,120,160],
-      desc:"近接・単体で射程が長い。前方の敵に早く届く。Lv3で射程延長。" },
+      desc:"近接・単体だが命中時に隣接する敵へダメージが連鎖（最大3体）。敵が離れていると連鎖は途切れる。Lv3で射程延長。" },
     guardian:{ name:"ガーディアン", role:"melee", glyph:"盾", color:"#c98f54",
       attack:"single", interval:1.5,
       dmg:[7,9,11], range:[72,78,84],
@@ -223,7 +256,7 @@ const CONFIG = {
     sniper:{ name:"スナイパー", role:"ranged", glyph:"狙", color:"#d64550",
       attack:"single", interval:[7.0,7.0,7.0],   // 超長チャージ（全Lv共通7秒）
       dmg:[70,95,120], range:[340,340,360],
-      desc:"遠距離・単体。超高威力・超長射程だが超長チャージ（7秒）。高HP敵・ボス向け。Lv3で威力・射程アップ。" },
+      desc:"遠距離・単体。超高威力・超長射程だが超長チャージ（7秒）。高HP敵（ゴーレム等）向け。Lv3で威力・射程アップ。" },
     commander:{ name:"指揮官", role:"support", glyph:"令", color:"#e0b64a",
       attack:"none",
       aura:{ stat:"atk", mult:[1.15,1.20,1.25], radius:115 },  // 周囲の味方の攻撃力上昇
@@ -237,9 +270,11 @@ const CONFIG = {
   // 敵（核の3種）
   enemies: {
     // sh=盤面スプライト高さ, anim=歩行モーション（amp:上下幅, freq:歩調, tilt:走行の前傾ゆれ）
-    slime:{ name:"ゴブリン", hp:28,  speed:46, color:"#7bd88f", r:13, sh:50, anim:{amp:3.5, freq:0.075, tilt:0} },
-    runner:{ name:"コボルト", hp:18, speed:96, color:"#f2c94c", r:11, sh:46, anim:{amp:5, freq:0.09, tilt:0.16} },
-    golem:{ name:"ゴーレム", hp:150, speed:28, color:"#9aa3b8", r:18, def:5, sh:80, anim:{amp:1.5, freq:0.05, tilt:0} },
+    slime:{ name:"ゴブリン", hp:28,  speed:46, color:"#7bd88f", r:13, sh:50, anim:{amp:3.5, freq:0.075, tilt:0}, desc:"標準的な雑魚。" },
+    runner:{ name:"コボルト", hp:18, speed:96, color:"#f2c94c", r:11, sh:46, anim:{amp:5, freq:0.09, tilt:0.16}, desc:"高速・低HP。素早く駆け抜ける。" },
+    golem:{ name:"ゴーレム", hp:150, speed:28, color:"#9aa3b8", r:18, def:5, sh:80, anim:{amp:1.5, freq:0.05, tilt:0}, desc:"高HP＋防御。重い一撃で対処。" },
+    orc:{ name:"オーク", hp:56, speed:46, color:"#5c8a3a", r:15, def:2, sh:58, anim:{amp:3.5, freq:0.07, tilt:0}, desc:"ゴブリンの上位。HPが高く少し硬い。" },   // ゴブリン上位（速度据え置き・HP増・軽装甲）
+    harpy:{ name:"ハーピー", hp:34, speed:96, color:"#c98fd8", r:12, sh:50, anim:{amp:5, freq:0.09, tilt:0.14}, desc:"コボルトの上位。高速のままHPが高い。" },      // コボルト上位（速度据え置き・HP増）
   },
 };
 
@@ -287,6 +322,8 @@ function reg(id){ registerChar(id, `img/${id}_idle.png`, `img/${id}_atk.png`); }
 ASSETS.enemy.slime  = loadImg("img/goblin_enemy.png");   // ゴブリン（スライム枠）
 ASSETS.enemy.runner = loadImg("img/kobold_enemy.png");   // コボルト（ランナー枠）
 ASSETS.enemy.golem  = loadImg("img/golem_enemy.png");
+ASSETS.enemy.orc    = loadImg("img/orc_enemy.png");     // ゴブリン上位
+ASSETS.enemy.harpy  = loadImg("img/harpy_enemy.png");   // コボルト上位
 
 /* =====================================================================
    ここから下はゲーム本体（通常は触らなくてOK）
@@ -555,6 +592,28 @@ function unitAttack(unit, dt){
     addBeam(unit.x,unit.y,tgt.x,tgt.y,c.color);
     dealDamage(unit,tgt,d);
     if(c.slow){ const s=c.slow[lv]; tgt.slowF=Math.min(tgt.slowF,s.f); tgt.slowUntil=Math.max(tgt.slowUntil,s.t); }
+    unit.cd=interval;
+  }
+  else if(c.attack==="chain"){
+    // 主対象：射程内でゴールに最も近い敵。そこから隣接する敵へ連鎖（最大chainMax体）
+    let tgt=null,best=-1;
+    living.forEach(e=>{ if(Math.hypot(e.x-unit.x,e.y-unit.y)<=range+e.r && e.dist>best){best=e.dist;tgt=e;} });
+    if(!tgt) return;
+    const chainR=c.chainRadius||48, maxT=c.chainMax||3;
+    const hitList=[tgt]; let cur=tgt;
+    while(hitList.length<maxT){
+      let nxt=null,nd=1e9;
+      living.forEach(e=>{ if(hitList.indexOf(e)>=0) return;
+        const d=Math.hypot(e.x-cur.x,e.y-cur.y);
+        if(d<=chainR && d<nd){nd=d;nxt=e;} });      // 隣接がなければ連鎖は途切れる
+      if(!nxt) break;
+      hitList.push(nxt); cur=nxt;
+    }
+    addBeam(unit.x,unit.y,tgt.x,tgt.y,c.color);
+    for(let i=0;i<hitList.length;i++){
+      if(i>0) addBeam(hitList[i-1].x,hitList[i-1].y,hitList[i].x,hitList[i].y,c.color);
+      dealDamage(unit,hitList[i],dmg);              // 全対象に同ダメージ（減衰なし）
+    }
     unit.cd=interval;
   }
   else if(c.attack==="splash"){
@@ -829,6 +888,8 @@ function hideOverlay(id){ document.getElementById(id).classList.remove("show"); 
 document.getElementById("doneBtn").onclick=()=>{ if(!state.pendingUnit) startWave(); };
 document.getElementById("nextTurnBtn").onclick=nextTurn;
 document.getElementById("restartBtn").onclick=()=>{ hideOverlay("endOverlay"); newGame(); };
+document.getElementById("helpBtn").onclick=()=>showOverlay("helpOverlay");
+document.getElementById("helpCloseBtn").onclick=()=>hideOverlay("helpOverlay");
 document.getElementById("rerollBtn").onclick=()=>{ if(state.phase==="draft") rollDraft(); };
 
 // ゲーム速度（同じ速度を再タップで等倍に戻る）
@@ -843,7 +904,30 @@ document.getElementById("spd2").onclick=()=>setSpeed(2);
 document.getElementById("spd3").onclick=()=>setSpeed(3);
 
 // 起動
+// 遊び方ガイドのキャラ・敵一覧をCONFIGから自動生成（常に現行仕様と一致）
+function buildHelpLists(){
+  const roleName={melee:"近接",ranged:"遠距離",support:"支援"};
+  let ch="";
+  ["melee","ranged","support"].forEach(role=>{
+    for(const id in CONFIG.characters){ const c=CONFIG.characters[id]; if(c.role!==role) continue;
+      ch+=`<div class="hrow"><span class="hbadge" style="background:${c.color}">${c.glyph}</span>`
+        + `<b>${c.name}</b> <span class="htag">${roleName[c.role]}</span><br>`
+        + `<span class="hdesc">${c.desc}</span></div>`;
+    }
+  });
+  document.getElementById("helpChars").innerHTML=ch;
+  let eh="";
+  for(const id in CONFIG.enemies){ const e=CONFIG.enemies[id];
+    const d = e.def? ` / 防御${e.def}`:"";
+    eh+=`<div class="hrow"><b>${e.name}</b> <span class="htag">HP${e.hp} / 速${e.speed}${d}</span><br>`
+      + `<span class="hdesc">${e.desc||""}</span></div>`;
+  }
+  document.getElementById("helpEnemies").innerHTML=eh;
+}
+
 newGame();
+buildHelpLists();             // 遊び方の一覧を生成
+showOverlay("helpOverlay");   // 初回起動時に遊び方を表示
 requestAnimationFrame(loop);
 </script>
 </body>
