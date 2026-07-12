@@ -402,6 +402,7 @@ function eligiblePool(){
     return !(owned && owned.level>=3);
   });
 }
+const WILD_CHANCE=0.12;   // 1回のドラフトでワイルドが1枠に出る確率（各キャラ30%より低め）
 function rollDraft(){
   const pool=eligiblePool();
   // 3人ランダム抽選（重複なし）
@@ -410,12 +411,17 @@ function rollDraft(){
     const idx=Math.floor(Math.random()*bag.length);
     picks.push(bag.splice(idx,1)[0]);
   }
+  // 低確率でワイルドを1枠に混ぜる（盤面にLv3未満の味方がいる時のみ）
+  if(picks.length>0 && state.units.some(u=>u.level<3) && Math.random()<WILD_CHANCE){
+    picks[Math.floor(Math.random()*picks.length)]="__wild__";
+  }
   state.draftChoices=picks;
   renderDraft();
 }
 function openDraft(){
   state.phase="draft"; updateStatus();
-  rollDraft();
+  if(state.turn===1) { state.draftChoices=["ninja","swordsman","ranger"]; renderDraft(); }  // 初回の初期表示のみ固定。リロールでランダムに戻る
+  else rollDraft();
   showOverlay("draftOverlay");
   document.getElementById("doneBtn").style.display="none";
   document.getElementById("startWaveBtn").style.display="none";
@@ -426,9 +432,21 @@ function renderDraft(){
   const roleName={melee:"近接",ranged:"遠距離",support:"支援"};
   const roleVar ={melee:"--melee",ranged:"--ranged",support:"--support"};
   state.draftChoices.forEach(id=>{
+    const el=document.createElement("div"); el.className="card";
+    if(id==="__wild__"){        // ワイルド（特殊枠）
+      el.innerHTML=`
+        <div class="portrait" style="background:linear-gradient(160deg,#4a3a12,#241c30);">
+          <span class="glyph" style="color:#e6b34a">★</span>
+        </div>
+        <div class="name">ワイルド</div>
+        <div class="role" style="color:var(--gold)">特殊・低確率</div>
+        <div class="desc">盤面の味方1体をランダムにLvアップ（Lv3は対象外）。</div>
+        <div class="lvline">当たり枠！</div>`;
+      el.onclick=()=>pickCharacter("__wild__");
+      wrap.appendChild(el); return;
+    }
     const c=CONFIG.characters[id];
     const owned=state.ownedByName[c.name];
-    const el=document.createElement("div"); el.className="card";
     const col=`var(${roleVar[c.role]})`;
     const pimg=ASSETS.portrait[id];
     const portraitInner = pimg
@@ -447,9 +465,21 @@ function renderDraft(){
   });
 }
 function pickCharacter(id){
+  hideOverlay("draftOverlay");
+  if(id==="__wild__"){                       // ワイルド：味方1体をランダムLvアップ
+    state.pendingUnit=null;
+    const cands=state.units.filter(u=>u.level<3);   // Lv3は対象外
+    if(cands.length){
+      const u=cands[Math.floor(Math.random()*cands.length)];
+      u.level++;
+      enterPlacement(`ワイルド発動！ ${u.name} が Lv${u.level} になりました（配置なし）。`);
+    }else{
+      enterPlacement("ワイルド発動！ ただしレベルアップ対象がいませんでした。");
+    }
+    return;
+  }
   const c=CONFIG.characters[id];
   const owned=state.ownedByName[c.name];
-  hideOverlay("draftOverlay");
   if(owned){                       // 同名 → レベルアップ（配置不要）
     owned.level=Math.min(3,owned.level+1);
     state.pendingUnit=null;
