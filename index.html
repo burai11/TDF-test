@@ -105,6 +105,10 @@
 </head>
 <body>
 <div class="wrap">
+  <audio id="bgm" loop preload="auto">
+    <source src="bgm/battle_bgm.ogg" type="audio/ogg">
+    <source src="bgm/battle_bgm.mp3" type="audio/mpeg">
+  </audio>
   <div class="status">
     <span class="item">ターン <b id="turnNum">1</b>/<b id="turnTotal">12</b></span>
     <span class="item">HP <span class="hearts" id="hearts"></span></span>
@@ -114,6 +118,7 @@
     <button class="spd" id="spd2">2×</button>
     <button class="spd" id="spd3">3×</button>
     <button class="spd" id="helpBtn">遊び方</button>
+    <button class="spd" id="muteBtn" title="BGMミュート">🔊</button>
   </div>
 
   <div class="stage">
@@ -201,7 +206,7 @@
    ===================================================================== */
 const CONFIG = {
   playerHP: 10,
-  tileSize: 42,          // 配置マスの見た目サイズ
+  tileSize: 48,          // 配置マスの見た目/判定サイズ（画像のレンガ□に合わせる）
   waves: [
     // 各ウェーブの敵構成。t=出現秒, type=敵ID（すべて仮・調整可）
     // W1/W2はLv1単体で処理しきれる余裕、W3以降は数を増やして難度上昇
@@ -216,7 +221,7 @@ const CONFIG = {
     { name:"ウェーブ 9",  spawns:[ ...seq(10,0.0,0.9,"runner"), ...seq(10,2.0,1.0,"slime"), ...seq(3,5.0,6.0,"golem"), ...seq(4,3.0,2.5,"harpy"), ...seq(2,4.0,3.0,"orc"), ...seq(2,6.0,4.0,"borc") ]},
     { name:"ウェーブ 10", spawns:[ ...seq(16,0.0,0.85,"slime"), ...seq(7,3.0,3.0,"golem"), ...seq(6,2.0,2.2,"orc") ]},
     { name:"ウェーブ 11", spawns:[ ...seq(14,0.0,0.75,"runner"), ...seq(8,2.0,2.5,"golem"), ...seq(6,2.5,2.0,"harpy") ]},
-    { name:"ウェーブ 12", spawns:[ ...seq(17,0.0,0.8,"slime"), ...seq(3,4.0,4.0,"bgoblin"), ...seq(10,3.0,1.0,"runner"), ...seq(9,5.0,3.0,"golem"), ...seq(5,2.0,2.0,"orc"), ...seq(3,6.0,3.0,"borc"), ...seq(4,4.0,2.5,"harpy") ]},
+    { name:"ウェーブ 12", spawns:[ ...seq(17,0.0,0.8,"slime"), ...seq(3,4.0,4.0,"bgoblin"), ...seq(10,3.0,1.0,"runner"), ...seq(9,5.0,3.0,"golem"), ...seq(5,2.0,2.0,"orc"), ...seq(3,6.0,3.0,"borc"), ...seq(4,4.0,2.5,"harpy"), ...seq(1,20.0,0,"boss") ]},
   ],
 
   // キャラクター（核の5種）。stats は [Lv1,Lv2,Lv3]
@@ -235,13 +240,18 @@ const CONFIG = {
       slow:[{f:0.55,t:1.5},{f:0.55,t:1.5},{f:0.4,t:2.2}], // f=速度倍率,t=秒
       desc:"近接・単体＋減速。狙った敵の足を止める。Lv3で減速強化。" },
     breaker:{ name:"ブレイカー", role:"melee", glyph:"剛", color:"#c0662e",
-      attack:"circle", interval:[3.2,3.0,2.7],   // 攻撃頻度をさらに低く（隙が大きい）
-      dmg:[24,35,48], range:[74,80,92],           // 重い一撃・円形範囲（単体撃破は連携前提）
+      attack:"circle", interval:[4.4,4.1,3.7],   // 攻撃頻度をさらに低く（隙が大きい）
+      dmg:[24,35,48], range:[62,68,78],           // 重い一撃・円形範囲（範囲を狭めた／単体撃破は連携前提）
       desc:"近接・円形範囲。攻撃間隔が長く隙が大きい重量級。密集を巻き込む一撃だが単体では倒しきれず、他キャラとの連携前提。Lv3で威力・範囲アップ。" },
     mage:{ name:"メイジ", role:"ranged", glyph:"杖", color:"#9db8ff",
       attack:"splash", interval:2.2,
       dmg:[16,22,28], range:[220,220,220], splash:[55,55,85],
       desc:"遠距離・範囲魔法。手数は遅いが密集に強い。Lv3で範囲拡大。" },
+    curser:{ name:"呪術師", role:"ranged", glyph:"呪", color:"#a06fd0",
+      attack:"single", interval:3.2,             // 低頻度（射程がある分ばら撒きを抑制）
+      dmg:[3,4,5], range:[190,200,210],           // 低火力・遠距離
+      slow:[{f:0.55,t:1.6},{f:0.5,t:1.8},{f:0.4,t:2.2}],  // 行動速度を落とす球
+      desc:"遠距離・低火力だが行動速度を落とす球を撃つデバフ役。Lv2/3で減速が隣接敵へ波及。" },
     ranger:{ name:"レンジャー", role:"ranged", glyph:"斥", color:"#8fbf6f",
       attack:"single", interval:[1.25,1.25,1.0],   // Lv3で攻撃速度上昇
       dmg:[12,16,20], range:[200,200,205],
@@ -274,6 +284,7 @@ const CONFIG = {
     harpy:{ name:"ハーピー", hp:34, speed:96, color:"#c98fd8", r:12, sh:50, anim:{amp:5, freq:0.09, tilt:0.14}, desc:"コボルトの上位。高速のままHPが高い。" },      // コボルト上位（速度据え置き・HP増）
     bgoblin:{ name:"バリアゴブリン", hp:28, speed:46, color:"#7bd88f", r:13, sh:50, barrier:3, anim:{amp:3.5, freq:0.075, tilt:0}, desc:"ゴブリン＋バリア3。手数で剥がしてから火力を通す。" },
     borc:{ name:"バリアオーク", hp:56, speed:46, color:"#5c8a3a", r:15, def:2, sh:58, barrier:3, anim:{amp:3.5, freq:0.07, tilt:0}, desc:"オーク＋バリア3。硬いうえにバリア持ち。" },
+    boss:{ name:"ボス", hp:2000, speed:22, color:"#b03a3a", r:26, def:8, sh:132, boss:true, anim:{amp:2, freq:0.04, tilt:0}, desc:"強大なボス。高HP＋防御。ゴール到達で即敗北。総力戦で食い止めろ。" },
   },
 };
 
@@ -284,28 +295,26 @@ function seq(n, start, gap, type){
 
 /* =====================================================================
    マップ（一本道）と配置マス
-   PATH: 敵が通る道のりの折れ線。左U字→上部の長い直線→右U字（S字）。
+   PATH: 敵が通る道のりの折れ線（map_full 画像の砂利道をトレース）。
    ===================================================================== */
 const PATH = [
-  {x:80,y:130},{x:80,y:560},{x:300,y:560},{x:300,y:210},   // 左U字（スタート→下→右→上）
-  {x:748,y:210},                                           // 上段の長い直線
-  {x:748,y:560},{x:842,y:560},{x:842,y:130}                // 右U字（狭め・下→右→上→ゴール）
+  {x:30,y:92},{x:32,y:320},{x:25,y:470},{x:38,y:483},{x:130,y:514},{x:206,y:494},
+  {x:228,y:452},{x:229,y:286},{x:288,y:248},{x:468,y:252},{x:484,y:130},{x:518,y:105},
+  {x:556,y:105},{x:584,y:126},{x:595,y:155},{x:664,y:148},{x:722,y:162},{x:728,y:396},
+  {x:784,y:398},{x:807,y:423},{x:814,y:462},{x:849,y:489},{x:862,y:548}
 ];
 
-// 配置マス10個（各マス〜通路 約45px。短射程でも届く配置）
+// 配置マス13個（画像のレンガ□の位置。map_full の座標を1/2でキャンバス化）
 const TILES = [
-  {x:160,y:515},{x:235,y:515},          // 左U字の下（下段通路の上）
-  {x:365,y:255},{x:345,y:350},          // 上段左（直線／上り列）
-  {x:500,y:255},{x:585,y:255},          // 上段中央（直線）
-  {x:665,y:255},{x:703,y:350},          // 上段右（直線／下り列）
-  {x:795,y:300},{x:795,y:385},          // 右U字の中央（下り通路・上り通路の両方に届く 約47px）
+  {x:525,y:155},{x:525,y:205},{x:175,y:255},{x:175,y:305},{x:275,y:305},{x:325,y:305},
+  {x:275,y:355},{x:675,y:355},{x:775,y:355},{x:825,y:355},{x:675,y:405},{x:75,y:455},{x:125,y:455}
 ];
-// ※座標は最終値（内部 900×660）。
 
 const ASSETS = { portrait:{}, sprite:{}, enemy:{} };
 function loadImg(src){ const im=new Image(); im.src=src; im.__ok=false; im.onload=()=>im.__ok=true; return im; }
 function imgReady(im){ return im && im.complete && im.naturalWidth>0; }
 const ATK_FLASH=0.32;   // 攻撃差分を表示する秒数
+const SLOW_SPREAD_R=48; // 減速の波及：対象からこの距離内の敵へ広がる
 
 // --- キャラ素材（img/フォルダから読み込み。立ち絵＋攻撃/モーション差分） ---
 ASSETS.atk = {};
@@ -316,7 +325,7 @@ function registerChar(id, idleSrc, atkSrc){
 }
 // 画像は index.html と同じ場所の img/ フォルダから読み込む（img/{id}_idle.png, img/{id}_atk.png）
 function reg(id){ registerChar(id, `img/${id}_idle.png`, `img/${id}_atk.png`); }
-["swordsman","lancer","guardian","ninja","breaker","mage","ranger","sniper","commander","strategist"].forEach(reg);
+["swordsman","lancer","guardian","ninja","breaker","mage","curser","ranger","sniper","commander","strategist"].forEach(reg);
 // 敵スプライト（type → 画像）
 ASSETS.enemy.slime  = loadImg("img/goblin_enemy.png");   // ゴブリン（スライム枠）
 ASSETS.enemy.runner = loadImg("img/kobold_enemy.png");   // コボルト（ランナー枠）
@@ -325,6 +334,8 @@ ASSETS.enemy.orc    = loadImg("img/orc_enemy.png");     // ゴブリン上位
 ASSETS.enemy.harpy  = loadImg("img/harpy_enemy.png");   // コボルト上位
 ASSETS.enemy.bgoblin = ASSETS.enemy.slime;              // バリアゴブリン＝ゴブリンと同じ絵
 ASSETS.enemy.borc    = ASSETS.enemy.orc;                // バリアオーク＝オークと同じ絵
+ASSETS.enemy.boss    = loadImg("img/boss_enemy.png");   // ボス
+ASSETS.map = loadImg("img/map_full.jpg");               // 戦闘マップ背景
 
 /* =====================================================================
    ここから下はゲーム本体（通常は触らなくてOK）
@@ -395,11 +406,14 @@ function updateStatus(){
 
 /* ---------------- ドラフト ---------------- */
 function eligiblePool(){
-  // 所持済みでLv3のキャラは対象外
+  // 所持済みでLv3のキャラは対象外。マスが満杯なら新規（未所持）も対象外（配置不可のため）
+  const tilesFull = Object.keys(state.tilesUsed).length >= TILES.length;
   return Object.keys(CONFIG.characters).filter(id=>{
     const c=CONFIG.characters[id];
     const owned=state.ownedByName[c.name];
-    return !(owned && owned.level>=3);
+    if(owned && owned.level>=3) return false;
+    if(!owned && tilesFull) return false;
+    return true;
   });
 }
 const WILD_CHANCE=0.12;   // 1回のドラフトでワイルドが1枠に出る確率（各キャラ30%より低め）
@@ -542,6 +556,7 @@ function flashHint(msg){
 /* ---------------- ウェーブ / 戦闘 ---------------- */
 function startWave(){
   state.phase="battle"; state.placedThisTurn=null; updateStatus();
+  bgmPlay();
   document.getElementById("doneBtn").style.display="none";
   document.getElementById("startWaveBtn").style.display="none";
   document.getElementById("controlHint").textContent="戦闘中…（自動）";
@@ -553,7 +568,7 @@ function startWave(){
 function spawnEnemy(type){
   const e=CONFIG.enemies[type];
   state.enemies.push({ type, name:e.name, hp:e.hp, maxhp:e.hp, speed:e.speed,
-    r:e.r, color:e.color, def:e.def||0, barrier:e.barrier||0, dist:0, slowUntil:0, slowF:1, hitFlash:0, alive:true });
+    r:e.r, color:e.color, def:e.def||0, barrier:e.barrier||0, boss:e.boss||false, dist:0, slowUntil:0, slowF:1, hitFlash:0, alive:true });
 }
 
 // 攻撃線などの一時演出
@@ -624,7 +639,16 @@ function unitAttack(unit, dt){
     let d=dmg; if(c.crit && Math.random()<c.crit[lv]) d*=2;
     addBeam(unit.x,unit.y,tgt.x,tgt.y,c.color);
     dealDamage(unit,tgt,d);
-    if(c.slow){ const s=c.slow[lv]; tgt.slowF=Math.min(tgt.slowF,s.f); tgt.slowUntil=Math.max(tgt.slowUntil,s.t); }
+    if(c.slow){
+      const s=c.slow[lv], spread=lv+1;   // Lv1:対象のみ, Lv2:+隣接1, Lv3:+隣接2
+      tgt.slowF=Math.min(tgt.slowF,s.f); tgt.slowUntil=Math.max(tgt.slowUntil,s.t);
+      if(spread>1){
+        living.filter(e=>e!==tgt)
+          .map(e=>({e,d:Math.hypot(e.x-tgt.x,e.y-tgt.y)}))
+          .filter(o=>o.d<=SLOW_SPREAD_R).sort((a,b)=>a.d-b.d).slice(0,spread-1)
+          .forEach(o=>{ o.e.slowF=Math.min(o.e.slowF,s.f); o.e.slowUntil=Math.max(o.e.slowUntil,s.t); });
+      }
+    }
     unit.cd=interval;
   }
   else if(c.attack==="chain"){
@@ -676,8 +700,8 @@ function updateBattle(dt){
     const p=posAt(e.dist); e.x=p.x; e.y=p.y;
     if(e.dist>=pathTotal){                 // ゴール到達
       e.alive=false;
-      state.hp-=1; updateStatus();
-      if(state.hp<=0){ endGame(false); }
+      if(e.boss){ endGame(false); }        // ボスは到達で即敗北（HPに関係なく）
+      else { state.hp-=1; updateStatus(); if(state.hp<=0){ endGame(false); } }
     }
   });
   // 攻撃
@@ -709,6 +733,7 @@ function updateBattle(dt){
 /* ---------------- リザルト ---------------- */
 function showResult(){
   state.phase="result"; updateStatus();
+  bgmPause();
   const rows=document.getElementById("resultRows"); rows.innerHTML="";
   const roleVar={melee:"--melee",ranged:"--ranged",support:"--support"};
   state.units.slice().sort((a,b)=>(b.waveDmg||0)-(a.waveDmg||0)).forEach(u=>{
@@ -733,6 +758,7 @@ function nextTurn(){
 /* ---------------- 終了 ---------------- */
 function endGame(win){
   state.phase="end"; updateStatus();
+  bgmPause();
   document.getElementById("endTitle").textContent = win ? "クリア！" : "ゲームオーバー";
   document.getElementById("endLead").textContent = win
     ? `全${CONFIG.waves.length}ウェーブを突破しました！ここから敵・キャラ・ボスを追加していけます。`
@@ -743,12 +769,15 @@ function endGame(win){
 /* ---------------- 描画 ---------------- */
 function draw(){
   ctx.clearRect(0,0,W,H);
-  // 背景の薄いグリッド
-  ctx.strokeStyle="#1c2333"; ctx.lineWidth=1;
-  for(let x=0;x<W;x+=45){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
-  for(let y=0;y<H;y+=45){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
-
-  drawPath();
+  if(imgReady(ASSETS.map)){
+    ctx.drawImage(ASSETS.map, 0,0, W, H);   // マップ背景（道・マス・スタート/ゴールを含む）
+  }else{
+    // フォールバック：薄いグリッド＋コード描画の道
+    ctx.strokeStyle="#1c2333"; ctx.lineWidth=1;
+    for(let x=0;x<W;x+=45){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+    for(let y=0;y<H;y+=45){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+    drawPath();
+  }
   drawTiles();
   drawEffects();
   drawEnemies();
@@ -773,11 +802,21 @@ function drawPath(){
 function drawTiles(){
   const half=CONFIG.tileSize/2;
   const movable = state.phase==="placement" && (state.pendingUnit || state.placedThisTurn);
+  const useImg = imgReady(ASSETS.map);
   TILES.forEach((t,i)=>{
     const used=state.tilesUsed[i];
     const isMine = state.placedThisTurn && state.placedThisTurn.tile===i;
     const canPlace = movable && !used;        // 空きマス＝配置/移動先
-    if(isMine){                                // 今ターンのユニットがいるマス
+    if(useImg){
+      // 画像モード：マスの四角は画像にあるので描かず、配置可能/選択中だけ枠を光らせる
+      if(canPlace || isMine){
+        ctx.fillStyle = isMine ? "rgba(230,179,74,.28)" : "rgba(230,179,74,.16)";
+        ctx.strokeStyle="#e6b34a"; ctx.lineWidth= isMine?3:2;
+        roundRect(t.x-half,t.y-half,CONFIG.tileSize,CONFIG.tileSize,8); ctx.fill(); ctx.stroke();
+      }
+      return;
+    }
+    if(isMine){
       ctx.fillStyle="rgba(230,179,74,.22)"; ctx.strokeStyle="#e6b34a"; ctx.lineWidth=2;
     }else if(canPlace){
       ctx.fillStyle="rgba(230,179,74,.12)"; ctx.strokeStyle="#e6b34a"; ctx.lineWidth=2;
@@ -861,10 +900,11 @@ function drawEnemies(){
       if(bcol){ ctx.strokeStyle=bcol; ctx.lineWidth=2.5;
         ctx.beginPath(); ctx.ellipse(e.x, feetY-h*0.42, w*0.5+3, h*0.5+2, 0,0,7); ctx.stroke(); }
       // HPバー（スプライト上）
-      const bw=Math.max(24,w*0.7), ratio=Math.max(0,e.hp/e.maxhp), by=feetY-h-6;
-      ctx.fillStyle="#3a0e12"; ctx.fillRect(e.x-bw/2,by,bw,4);
+      const bw=Math.max(24,w*0.7), ratio=Math.max(0,e.hp/e.maxhp), by=feetY-h-6, bh=e.boss?7:4;
+      ctx.fillStyle="#3a0e12"; ctx.fillRect(e.x-bw/2,by,bw,bh);
       ctx.fillStyle= ratio>0.5?"#57d38c":ratio>0.25?"#e6b34a":"#e5484d";
-      ctx.fillRect(e.x-bw/2,by,bw*ratio,4);
+      ctx.fillRect(e.x-bw/2,by,bw*ratio,bh);
+      if(e.boss){ ctx.strokeStyle="#e6b34a"; ctx.lineWidth=1; ctx.strokeRect(e.x-bw/2,by,bw,bh); }
     }else{
       // フォールバック（画像未読込時）：従来の円
       ctx.fillStyle = e.hitFlash>0 ? "#ffffff" : e.color;
@@ -930,6 +970,16 @@ document.getElementById("nextTurnBtn").onclick=nextTurn;
 document.getElementById("restartBtn").onclick=()=>{ hideOverlay("endOverlay"); newGame(); };
 document.getElementById("helpBtn").onclick=()=>showOverlay("helpOverlay");
 document.getElementById("helpCloseBtn").onclick=()=>hideOverlay("helpOverlay");
+
+// --- BGM（戦闘中のみ再生） ---
+const bgm=document.getElementById("bgm"); bgm.volume=0.45;
+function bgmPlay(){ if(!bgm.muted){ bgm.play().catch(()=>{}); } }   // 自動再生制限は完了タップ後なので通常は再生可
+function bgmPause(){ bgm.pause(); }
+document.getElementById("muteBtn").onclick=()=>{
+  bgm.muted=!bgm.muted;
+  document.getElementById("muteBtn").textContent = bgm.muted ? "🔇" : "🔊";
+  if(!bgm.muted && state.phase==="battle") bgmPlay(); else if(bgm.muted) bgmPause();
+};
 document.getElementById("rerollBtn").onclick=()=>{ if(state.phase==="draft") rollDraft(); };
 
 // ゲーム速度（同じ速度を再タップで等倍に戻る）
